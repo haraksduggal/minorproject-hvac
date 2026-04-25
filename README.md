@@ -1,50 +1,68 @@
-# HVAC Placement Optimizer — Web Dashboard
+<!-- HEADER -->
+<p align="center">
+  <img src="https://capsule-render.vercel.app/api?type=waving&color=0:0f172a,100:020617&height=200&section=header&text=Energy%20Optimising%20HVAC&fontSize=40&fontColor=38bdf8&animation=fadeIn&fontAlignY=35"/>
+</p>
 
-A full-stack RL-based HVAC vent placement optimizer with an interactive web frontend.
+<p align="center">
+  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&size=18&duration=2500&pause=800&color=38BDF8&center=true&vCenter=true&width=600&lines=AI+meets+Energy+Efficiency;Smart+HVAC+Placement+using+Reinforcement+Learning;Minimal+Energy.+Maximum+Coverage.;Built+for+real-world+impact"/>
+</p>
 
-## Quick Start
+---
 
-```bash
-pip install -r requirements.txt
-python server.py
-```
+## 🌑 Overview
 
-Then open **http://localhost:5000** in your browser.
+> *Not your average HVAC system.*
 
-## Features
+This project uses **Reinforcement Learning (DQN)** to intelligently optimize HVAC vent placement — maximizing cooling efficiency while minimizing energy usage.
 
-- **Interactive Floor Map Editor** — Draw walls, floors, and doors with click-and-drag
-- **5 Preset Floor Plans** — L-shaped office, multi-room, corridor, open plan, U-shaped
-- **3 Visualization Overlays** — Thermal heatmap, airflow direction arrows, clean blueprint
-- **RL Optimization** — DQN agent finds minimum HVAC units for ≥95% coverage
-- **Live Training Progress** — Watch the agent learn in real time
-- **Vent Selection** — Click vents on map or sidebar list to highlight
-- **Thermal Analytics** — Coverage %, dead zones, efficiency, convergence chart
-- **JSON Export** — Download results with one click
-- **Works Offline** — Falls back to in-browser Q-learning if server API is unavailable
+No manual tuning. No guesswork.  
+Just a system that *learns and adapts*.
 
-## How It Works
+---
 
-1. Draw or select a floor plan (0=wall, 1=floor, 2=door)
-2. Adjust cooling radius and training episodes
-3. Click "Run Optimization"
-4. View results: vent positions, heatmap, and statistics
+## 🌐 Live Demo
 
-## Architecture
+<p align="center">
+  <a href="https://energyoptimisinghvac.netlify.app/">
+    <img src="https://img.shields.io/badge/Launch%20App-0f172a?style=for-the-badge&logo=vercel&logoColor=38bdf8"/>
+  </a>
+</p>
 
-```
+---
+
+## ✨ Features
+
+<p align="center">
+  <img src="https://skillicons.dev/icons?i=python,js,html,css,flask"/>
+</p>
+
+- 🧩 Interactive floor plan editor  
+- 🤖 RL-based vent placement (DQN)  
+- 🔥 Dynamic thermal heatmaps  
+- 📊 Real-time analytics (coverage, efficiency, dead zones)  
+- ⚡ Dual execution (Backend + Browser fallback)  
+- 📦 Export results as JSON  
+
+---
+
+## 🧠 How It Works
+
+```text
+1. Design floor layout (grid-based)
+2. Set cooling radius + episodes
+3. RL agent explores placements
+4. Learns via reward optimization
+5. Outputs best configuration
+
 hvac_full/
-├── server.py              # Flask backend (serves UI + runs RL API)
+├── server.py
 ├── requirements.txt
 ├── frontend/
-│   └── index.html         # Complete standalone dashboard
+│   └── index.html
 └── hvac_rl/
-    ├── environment.py      # Thermal model + DQN agent (pure NumPy)
-    ├── presets.py           # 5 floor plan presets
-    └── visualizer.py        # Terminal renderer (optional CLI use)
-```
+    ├── environment.py
+    ├── presets.py
+    └── visualizer.py
 
-## Dual Mode
-
-- **With server**: `python server.py` — RL runs on Python backend (faster, full DQN)
-- **Without server**: Open `frontend/index.html` directly — RL runs in-browser via JS
+pip install -r requirements.txt
+python server.py
