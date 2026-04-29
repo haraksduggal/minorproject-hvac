@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HVAC Placement Optimizer v2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Instrument+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0b0e14; --surface: #12161e; --surface2: #181d28;
+  --border: rgba(0,224,208,0.07); --border-hi: rgba(0,224,208,0.25);
+  --accent: #00e0d0; --accent-dim: rgba(0,224,208,0.4);
+  --amber: #f0a030; --green: #00ff78; --text: #c5cdd8;
+  --text-dim: #5a6678; --text-muted: #3a4558; --danger: #ff4466;
+  --font-body: 'DM Sans', -apple-system, sans-serif;
+  --font-display: 'Instrument Sans', 'DM Sans', sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { background: var(--bg); }
+body { font-family: var(--font-body); color: var(--text); background: var(--bg); min-height: 100vh; overflow-x: hidden; }
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-thumb { background: rgba(0,224,208,0.15); border-radius: 3px; }
+
+.header { display:flex; align-items:center; justify-content:space-between; padding:14px 28px; border-bottom:1px solid var(--border); background:rgba(11,14,20,0.92); backdrop-filter:blur(16px); position:sticky; top:0; z-index:100; }
+.header-logo { display:flex; align-items:center; gap:14px; }
+.logo-mark { width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--accent),#007a72);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;font-size:18px;color:var(--bg);box-shadow:0 2px 16px rgba(0,224,208,0.2); }
+.logo-text h1 { font-family:var(--font-display);font-size:16px;font-weight:700;color:#e8ecf0;letter-spacing:-0.3px;line-height:1.1; }
+.logo-text span { font-size:9px;color:var(--accent-dim);letter-spacing:2.5px;text-transform:uppercase;font-weight:600; }
+.header-badges { display:flex;align-items:center;gap:10px; }
+.badge { display:inline-block;padding:3px 10px;border-radius:5px;font-size:10px;font-weight:600;letter-spacing:0.5px;font-family:var(--font-display); }
+.badge-accent { background:rgba(0,224,208,0.1);color:var(--accent); }
+.badge-green { background:rgba(0,255,120,0.1);color:var(--green); }
+.badge-amber { background:rgba(240,160,48,0.1);color:var(--amber); }
+.badge-muted { background:rgba(90,102,120,0.15);color:var(--text-dim); }
+
+.layout { display:grid; grid-template-columns:280px 1fr 300px; min-height:calc(100vh - 56px); }
+@media (max-width:1100px) { .layout { grid-template-columns:1fr; } .sidebar-l,.sidebar-r { border:none!important; } }
+.sidebar-l { padding:18px;overflow-y:auto;border-right:1px solid var(--border);display:flex;flex-direction:column;gap:14px; }
+.sidebar-r { padding:18px;overflow-y:auto;border-left:1px solid var(--border);display:flex;flex-direction:column;gap:14px; }
+.center { display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px;position:relative;background:radial-gradient(ellipse at 50% 40%,rgba(0,224,208,0.015) 0%,transparent 65%); }
+
+.card { background:linear-gradient(145deg,var(--surface),var(--surface2));border:1px solid var(--border);border-radius:10px;padding:16px; }
+.card-glow { border-color:var(--border-hi);box-shadow:0 0 24px rgba(0,224,208,0.04); }
+.lbl { font-family:var(--font-display);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:2.5px;color:var(--accent-dim);margin-bottom:10px; }
+
+.chip { display:inline-flex;align-items:center;gap:7px;padding:7px 14px;border-radius:7px;font-size:12px;font-weight:500;cursor:pointer;transition:all 0.2s;border:1px solid var(--border);background:rgba(0,224,208,0.03);color:var(--text-dim);font-family:var(--font-body);outline:none; }
+.chip:hover { border-color:var(--border-hi);color:var(--text);background:rgba(0,224,208,0.06); }
+.chip.on { background:rgba(0,224,208,0.12);border-color:rgba(0,224,208,0.4);color:var(--accent); }
+.preset-btn { width:100%;justify-content:space-between;padding:9px 14px; }
+.preset-btn.on { background:rgba(0,224,208,0.1);border-color:rgba(0,224,208,0.35); }
+
+.btn-primary { width:100%;padding:15px;border:none;border-radius:9px;font-family:var(--font-display);font-size:14px;font-weight:700;letter-spacing:1px;cursor:pointer;transition:all 0.25s;text-transform:uppercase;background:linear-gradient(135deg,var(--accent),#009e94);color:var(--bg);box-shadow:0 4px 28px rgba(0,224,208,0.25); }
+.btn-primary:hover { box-shadow:0 6px 36px rgba(0,224,208,0.4);transform:translateY(-1px); }
+.btn-primary:disabled { opacity:0.35;cursor:wait;transform:none;box-shadow:none; }
+.btn-secondary { width:100%;padding:13px;border-radius:9px;font-family:var(--font-display);font-size:13px;font-weight:600;letter-spacing:0.5px;cursor:pointer;transition:all 0.2s;background:rgba(0,224,208,0.06);color:var(--accent);border:1px solid rgba(0,224,208,0.15); }
+.btn-secondary:hover { background:rgba(0,224,208,0.12); }
+
+.range-row { display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px; }
+.range-row .val { color:var(--accent);font-weight:600; }
+input[type=range] { -webkit-appearance:none;width:100%;height:3px;background:rgba(0,224,208,0.1);border-radius:2px;outline:none;margin:6px 0; }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance:none;width:16px;height:16px;background:var(--accent);border-radius:50%;cursor:grab;box-shadow:0 0 10px rgba(0,224,208,0.35); }
+
+.progress-track { height:3px;background:rgba(0,224,208,0.07);border-radius:2px;overflow:hidden; }
+.progress-fill { height:100%;background:linear-gradient(90deg,var(--accent),#00ffa0);border-radius:2px;transition:width 0.3s; }
+
+.stat-num { font-family:var(--font-display);font-size:32px;font-weight:700;color:var(--accent);line-height:1;letter-spacing:-1.5px; }
+.stat-sub { font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;margin-top:3px; }
+.vent-row { display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:7px;cursor:pointer;transition:background 0.12s;font-size:12px; }
+.vent-row:hover { background:rgba(0,224,208,0.05); }
+.vent-row.active { background:rgba(0,224,208,0.1); }
+.vent-dot { width:9px;height:9px;border-radius:50%;flex-shrink:0;box-shadow:0 0 6px rgba(0,224,208,0.4); }
+.info-row { display:flex;justify-content:space-between;font-size:12px;padding:4px 0; }
+.info-row .k { color:var(--text-dim); }
+.info-row .v { color:var(--text);font-weight:500; }
+.legend-item { display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text-dim); }
+.legend-swatch { width:14px;height:14px;border-radius:3px;border:1px solid rgba(255,255,255,0.06); }
+.tooltip { position:absolute;background:#1a2030ee;border:1px solid var(--border-hi);border-radius:7px;padding:8px 14px;font-size:11px;pointer-events:none;box-shadow:0 10px 30px rgba(0,0,0,0.6);z-index:50;backdrop-filter:blur(8px); }
+.overlay-bar { display:flex;gap:4px;margin-bottom:16px;padding:5px 6px;background:rgba(18,22,30,0.85);border-radius:9px;border:1px solid var(--border);backdrop-filter:blur(8px); }
+.overlay-chip { font-size:11px;padding:5px 14px;border-radius:6px; }
+.heat-scale { display:flex;align-items:center;gap:8px;margin-top:14px; }
+.heat-bar { flex:1;height:8px;border-radius:4px;background:linear-gradient(90deg,rgb(20,40,90),rgb(40,100,170),rgb(50,200,110),rgb(230,200,60),rgb(255,120,40)); }
+.heat-label { font-size:9px;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase; }
+.fade-in { animation:fadeIn 0.45s ease-out both; }
+@keyframes fadeIn { from { opacity:0;transform:translateY(6px); } }
+@keyframes pulseGlow { 0%,100%{opacity:0.4;}50%{opacity:1;} }
+.pulse-dot { width:6px;height:6px;border-radius:50%;background:var(--accent);animation:pulseGlow 1.2s infinite; }
+.empty-state { text-align:center;padding:48px 24px; }
+.empty-icon { font-size:48px;opacity:0.12;margin-bottom:16px; }
+.empty-title { font-family:var(--font-display);font-size:15px;font-weight:600;color:var(--text-dim);margin-bottom:8px; }
+.empty-desc { font-size:12px;color:var(--text-muted);line-height:1.6;max-width:220px;margin:0 auto; }
+.map-wrap { border-radius:8px;padding:3px;background:var(--bg);border:1px solid var(--border);position:relative;box-shadow:0 0 40px rgba(0,224,208,0.03); }
+@keyframes spin { to{transform:rotate(360deg);} }
+.spinner { width:18px;height:18px;border:2px solid rgba(0,224,208,0.15);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;display:inline-block;vertical-align:middle;margin-right:8px; }
+/* Tonnage colors */
+.ton-075 { background: #4dd0e1; }
+.ton-1 { background: #00e0d0; }
+.ton-15 { background: #f0a030; }
+.ton-2 { background: #ff6e40; }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-logo">
+    <div class="logo-mark">H</div>
+    <div class="logo-text"><h1>HVAC Optimizer</h1><span>RL Engine · Tonnage Estimation</span></div>
+  </div>
+  <div class="header-badges">
+    <span class="badge badge-accent" id="phase-badge">DESIGN MODE</span>
+    <span class="badge badge-muted" id="grid-badge">14×14</span>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="sidebar-l">
+    <div class="card fade-in"><div class="lbl">Floor Plans</div><div id="preset-list" style="display:flex;flex-direction:column;gap:5px"></div></div>
+    <div class="card fade-in" style="animation-delay:.04s">
+      <div class="lbl">Drawing Tool</div>
+      <div id="brush-bar" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+    </div>
+    <div class="card fade-in" style="animation-delay:.08s">
+      <div class="lbl">RL Configuration</div>
+      <div>
+        <div class="range-row"><span>Cooling Radius</span><span class="val" id="radius-val">5</span></div>
+        <input type="range" id="radius-slider" min="3" max="10" value="5">
+      </div>
+      <div style="margin-top:14px">
+        <div class="range-row"><span>Training Episodes</span><span class="val" id="ep-val">400</span></div>
+        <input type="range" id="ep-slider" min="100" max="1000" step="50" value="400">
+      </div>
+      <div style="margin-top:14px">
+        <div class="range-row"><span>Max AC Units</span><span class="val" id="maxac-val">Auto</span></div>
+        <input type="range" id="maxac-slider" min="0" max="20" value="0">
+        <div style="font-size:10px;color:var(--text-muted);margin-top:2px">0 = automatic (no limit)</div>
+      </div>
+      <div style="margin-top:14px;padding:9px 12px;background:rgba(0,224,208,0.03);border-radius:7px">
+        <div class="info-row"><span class="k">Walkable cells</span><span class="v" id="walk-count">0</span></div>
+        <div class="info-row"><span class="k">Furniture cells</span><span class="v" id="furn-count">0</span></div>
+        <div class="info-row"><span class="k">Target coverage</span><span class="v">95%</span></div>
+      </div>
+    </div>
+    <div class="fade-in" style="animation-delay:.12s">
+      <button class="btn-primary" id="run-btn" onclick="handleRun()">▶  Run Optimization</button>
+    </div>
+    <div class="card fade-in" id="progress-card" style="display:none;border-color:rgba(0,224,208,0.15)">
+      <div class="lbl" style="display:flex;align-items:center;gap:7px"><span class="pulse-dot"></span> Training</div>
+      <div class="progress-track" style="margin:8px 0"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-dim)">
+        <span id="prog-ep">Ep 0/400</span><span id="prog-cov" style="color:var(--accent)">0%</span>
+      </div>
+    </div>
+    <div class="card fade-in" style="animation-delay:.16s">
+      <div class="lbl">Legend</div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <div class="legend-item"><div class="legend-swatch" style="background:#161b24"></div> Wall</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:#1e2a3a"></div> Floor</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:#6b5a3e"></div> Door</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:#5c4033"></div> Table</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:#8b6b4a"></div> Chair</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:var(--accent)"></div> HVAC Vent</div>
+      </div>
+      <div style="margin-top:10px">
+        <div class="lbl" style="margin-bottom:6px">Tonnage Scale</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <span style="font-size:10px;padding:2px 8px;border-radius:4px;background:#4dd0e180;color:#4dd0e1">0.75T</span>
+          <span style="font-size:10px;padding:2px 8px;border-radius:4px;background:#00e0d040;color:#00e0d0">1.0T</span>
+          <span style="font-size:10px;padding:2px 8px;border-radius:4px;background:#f0a03040;color:#f0a030">1.5T</span>
+          <span style="font-size:10px;padding:2px 8px;border-radius:4px;background:#ff6e4040;color:#ff6e40">2.0T</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <main class="center">
+    <div class="overlay-bar" id="overlay-bar" style="display:none"></div>
+    <div class="map-wrap" id="map-wrap"><canvas id="map-canvas"></canvas></div>
+    <div id="map-hint" style="margin-top:14px;font-size:11px;color:var(--text-muted);text-align:center">Click &amp; drag to paint · Use Table/Chair brushes for furniture layout</div>
+    <div class="heat-scale" id="heat-scale" style="display:none"><span class="heat-label">Cool</span><div class="heat-bar"></div><span class="heat-label">Warm</span></div>
+    <div class="tooltip" id="tooltip" style="display:none"></div>
+  </main>
+
+  <aside class="sidebar-r" id="right-panel">
+    <div class="card empty-state fade-in" id="empty-state">
+      <div class="empty-icon">⬡</div>
+      <div class="empty-title">No Results Yet</div>
+      <p class="empty-desc">Draw a floor plan with furniture, then run the optimizer. The model will estimate optimal AC placement and required tonnage.</p>
+    </div>
+    <div id="results-container" style="display:none"></div>
+  </aside>
+</div>
+
+<script>
+// ══════ CELL TYPES ══════
+// 0=wall 1=floor 2=door 3=table 4=chair
+const CELL_COLORS = {0:"#161b24",1:"#1e2a3a",2:"#6b5a3e",3:"#5c4033",4:"#8b6b4a"};
+const CELL_NAMES = {0:"Wall",1:"Floor",2:"Door",3:"Table",4:"Chair"};
+const TON_COLORS = {0.75:"#4dd0e1",1:"#00e0d0",1.5:"#f0a030",2:"#ff6e40"};
+const TONNAGE_OPTIONS = [0.75,1.0,1.5,2.0];
+
+const PRESETS = {
+  lshaped:{ label:"L-Shaped Office",rows:14,cols:14,gen:(r,c)=>{
+    if(r===0||r===13||c===0||c===13)return 0;
+    if(r>=1&&r<=6&&c>=1&&c<=9)return 1;
+    if(r>=7&&r<=12&&c>=1&&c<=5)return 1;
+    if(r===7&&c===3)return 2;
+    // Furniture: conference table
+    if(r>=2&&r<=4&&c>=3&&c<=5)return 3;
+    if((r===2||r===4)&&(c===2||c===6))return 4;
+    return 0;
+  }},
+  multiroom:{ label:"Multi-Room Suite",rows:16,cols:20,gen:(r,c)=>{
+    if(r===0||r===15||c===0||c===19)return 0;
+    if(c===8&&r>=1&&r<=14)return(r===4||r===11)?2:0;
+    if(r===8&&c>=9&&c<=18)return c===14?2:0;
+    if(r>=1&&r<=14&&c>=1&&c<=7){
+      // Desks in left room
+      if((r===3||r===6||r===9||r===12)&&(c===2||c===5))return 3;
+      if((r===3||r===6||r===9||r===12)&&(c===3||c===6))return 4;
+      return 1;
+    }
+    if(r>=1&&r<=7&&c>=9&&c<=18){
+      if(r>=3&&r<=5&&c>=12&&c<=15)return 3;
+      if((r===3||r===5)&&(c===11||c===16))return 4;
+      return 1;
+    }
+    if(r>=9&&r<=14&&c>=9&&c<=18){
+      if(r>=11&&r<=12&&c>=12&&c<=15)return 3;
+      if((r===11||r===12)&&(c===11||c===16))return 4;
+      return 1;
+    }
+    return 0;
+  }},
+  corridor:{ label:"Corridor Link",rows:10,cols:24,gen:(r,c)=>{
+    if(r===0||r===9||c===0||c===23)return 0;
+    if(r>=1&&r<=8&&c>=1&&c<=6)return 1;
+    if(r>=4&&r<=5&&c>=7&&c<=16)return 1;
+    if(c===7&&r===4)return 2;if(c===17&&r===4)return 2;
+    if(r>=1&&r<=8&&c>=17&&c<=22)return 1;
+    return 0;
+  }},
+  openplan:{ label:"Open Plan",rows:18,cols:18,gen:(r,c)=>{
+    if(r===0||r===17||c===0||c===17)return 0;
+    if((r===6||r===7)&&c>=5&&c<=7)return 0;
+    if((r===6||r===7)&&c>=10&&c<=12)return 0;
+    if((r===10||r===11)&&c>=5&&c<=7)return 0;
+    if((r===10||r===11)&&c>=10&&c<=12)return 0;
+    if(r>=1&&r<=16&&c>=1&&c<=16){
+      // Desk pods
+      if((r===3||r===4)&&(c===3||c===4))return 3;
+      if((r===3||r===4)&&(c===2||c===5))return 4;
+      if((r===3||r===4)&&(c===13||c===14))return 3;
+      if((r===3||r===4)&&(c===12||c===15))return 4;
+      if((r===13||r===14)&&(c===3||c===4))return 3;
+      if((r===13||r===14)&&(c===2||c===5))return 4;
+      if((r===13||r===14)&&(c===13||c===14))return 3;
+      if((r===13||r===14)&&(c===12||c===15))return 4;
+      return 1;
+    }
+    return 0;
+  }},
+  ushaped:{ label:"U-Shaped Wing",rows:16,cols:16,gen:(r,c)=>{
+    if(r===0||r===15||c===0||c===15)return 0;
+    if(r>=1&&r<=14&&c>=1&&c<=4)return 1;
+    if(r>=10&&r<=14&&c>=5&&c<=11)return 1;
+    if(r>=1&&r<=14&&c>=11&&c<=14)return 1;
+    if(r===10&&c===3)return 2;if(r===10&&c===12)return 2;
+    return 0;
+  }},
+};
+
+let grid=[],rows=0,cols=0,brush=1,drawing=false,phase="design",activePreset="lshaped";
+let results=null,overlay="heat",selectedVent=null,cellPx=30;
+
+function init(){buildPresetList();buildBrushBar();loadPreset("lshaped");setupSliders();setupCanvas();buildOverlayBar();}
+
+function makeGrid(k){const p=PRESETS[k];return Array.from({length:p.rows},(_,r)=>Array.from({length:p.cols},(_,c)=>p.gen(r,c)));}
+function loadPreset(k){grid=makeGrid(k);rows=grid.length;cols=grid[0].length;activePreset=k;results=null;phase="design";selectedVent=null;updateAll();}
+
+function buildPresetList(){
+  document.getElementById("preset-list").innerHTML=Object.entries(PRESETS).map(([k,p])=>`<button class="chip preset-btn ${k===activePreset?'on':''}" onclick="loadPreset('${k}')"><span>${p.label}</span><span style="font-size:10px;opacity:0.5">${p.rows}×${p.cols}</span></button>`).join("");
+}
+
+function buildBrushBar(){
+  const items=[[0,"Wall","#161b24"],[1,"Floor","#1e2a3a"],[2,"Door","#6b5a3e"],[3,"Table","#5c4033"],[4,"Chair","#8b6b4a"]];
+  document.getElementById("brush-bar").innerHTML=items.map(([v,l,c])=>`<button class="chip ${brush===v?'on':''}" onclick="setBrush(${v})"><span style="width:9px;height:9px;border-radius:2px;background:${c};border:1px solid rgba(255,255,255,0.08);display:inline-block"></span>${l}</button>`).join("");
+}
+function setBrush(v){brush=v;buildBrushBar();}
+
+function buildOverlayBar(){
+  document.getElementById("overlay-bar").innerHTML=[["heat","Thermal Map"],["airflow","Airflow"],["none","Blueprint"]].map(([k,l])=>`<button class="chip overlay-chip ${overlay===k?'on':''}" onclick="setOverlay('${k}')">${l}</button>`).join("");
+}
+function setOverlay(v){overlay=v;buildOverlayBar();renderMap();updateHeatScale();}
+
+function setupSliders(){
+  document.getElementById("radius-slider").oninput=e=>{document.getElementById("radius-val").textContent=e.target.value;};
+  document.getElementById("ep-slider").oninput=e=>{document.getElementById("ep-val").textContent=e.target.value;};
+  document.getElementById("maxac-slider").oninput=e=>{document.getElementById("maxac-val").textContent=+e.target.value===0?"Auto":e.target.value;};
+}
+
+function updateAll(){
+  cellPx=Math.min(Math.floor(540/Math.max(rows,cols)),34);
+  buildPresetList();buildBrushBar();updateCounts();updatePhaseBadge();updateGridBadge();updateRunBtn();updateOverlayBar();updateHeatScale();updateRightPanel();renderMap();
+}
+function updateCounts(){
+  let w=0,f=0;for(const row of grid)for(const v of row){if(v>0)w++;if(v===3||v===4)f++;}
+  document.getElementById("walk-count").textContent=w;
+  document.getElementById("furn-count").textContent=f;
+}
+function updatePhaseBadge(){
+  const el=document.getElementById("phase-badge");
+  if(phase==="design"){el.textContent="DESIGN MODE";el.className="badge badge-accent";}
+  else if(phase==="training"){el.textContent="TRAINING…";el.className="badge badge-amber";}
+  else{el.textContent="RESULTS";el.className="badge badge-green";}
+}
+function updateGridBadge(){document.getElementById("grid-badge").textContent=`${rows}×${cols}`;}
+function updateRunBtn(){
+  const el=document.getElementById("run-btn");
+  if(phase==="results"){el.textContent="← Back to Editor";el.className="btn-secondary";el.disabled=false;el.onclick=()=>{phase="design";results=null;selectedVent=null;updateAll();};}
+  else{el.innerHTML=phase==="training"?'<span class="spinner"></span> Training…':'▶  Run Optimization';el.className="btn-primary";el.disabled=phase==="training";el.onclick=handleRun;}
+}
+function updateOverlayBar(){document.getElementById("overlay-bar").style.display=phase==="results"?"flex":"none";}
+function updateHeatScale(){document.getElementById("heat-scale").style.display=(phase==="results"&&overlay==="heat")?"flex":"none";}
+function updateMapHint(){document.getElementById("map-hint").style.display=phase==="design"?"block":"none";}
+
+function setupCanvas(){
+  const c=document.getElementById("map-canvas");
+  c.addEventListener("mousedown",e=>{if(phase!=="design")return;drawing=true;paintAt(e);});
+  c.addEventListener("mousemove",e=>{showTooltip(e);if(phase==="design"&&drawing)paintAt(e);});
+  c.addEventListener("mouseup",()=>drawing=false);
+  c.addEventListener("mouseleave",()=>{drawing=false;document.getElementById("tooltip").style.display="none";});
+  c.addEventListener("click",e=>{if(phase==="results")clickVent(e);});
+}
+function getCell(e){const r2=e.target.getBoundingClientRect();const c=Math.floor((e.clientX-r2.left)/cellPx),r=Math.floor((e.clientY-r2.top)/cellPx);return(r>=0&&r<rows&&c>=0&&c<cols)?[r,c]:null;}
+function paintAt(e){const cell=getCell(e);if(!cell)return;grid[cell[0]][cell[1]]=brush;updateCounts();renderMap();}
+function clickVent(e){
+  if(!results)return;const cell=getCell(e);if(!cell)return;
+  const m=results.positions.find(p=>p.row===cell[0]&&p.col===cell[1]);
+  selectedVent=(m&&selectedVent&&selectedVent.row===m.row&&selectedVent.col===m.col)?null:m||null;
+  renderMap();updateRightPanel();
+}
+function showTooltip(e){
+  const cell=getCell(e),tip=document.getElementById("tooltip");
+  if(!cell){tip.style.display="none";return;}
+  const[r,c]=cell;const type=CELL_NAMES[grid[r][c]]||"Floor";
+  let extra="";
+  if(phase==="results"&&results?.heatmap&&grid[r][c]>0)extra=` · ${(results.heatmap[r][c]*100).toFixed(0)}% cool`;
+  const vent=results?.positions?.find(p=>p.row===r&&p.col===c);
+  if(vent)extra+=` · ${vent.tonnage}T AC`;
+  tip.innerHTML=`<div style="color:var(--accent);font-weight:600;margin-bottom:2px">(${r}, ${c})</div><div style="color:var(--text-dim)">${type}${extra}</div>`;
+  tip.style.left=(c*cellPx+cellPx+16)+"px";tip.style.top=(r*cellPx-8)+"px";tip.style.display="block";
+}
+
+function heatRGB(v){const t=Math.max(0,Math.min(1,v));if(t<.2){const s=t/.2;return[20+s*20,40+s*60,90+s*80];}if(t<.45){const s=(t-.2)/.25;return[40+s*10,100+s*100,170-s*60];}if(t<.7){const s=(t-.45)/.25;return[50+s*180,200,110-s*50];}if(t<.85){const s=(t-.7)/.15;return[230+s*20,200-s*80,60-s*20];}const s=(t-.85)/.15;return[250+s*5,120-s*40,40-s*10];}
+
+// ══════ FURNITURE RENDERING ══════
+function drawTable(ctx,x,y,sz){
+  ctx.fillStyle="#5c4033";ctx.fillRect(x+2,y+2,sz-4,sz-4);
+  ctx.strokeStyle="#8b6b4a";ctx.lineWidth=1;ctx.strokeRect(x+2,y+2,sz-4,sz-4);
+  // Table surface lines
+  ctx.strokeStyle="rgba(139,107,74,0.4)";ctx.lineWidth=0.5;
+  ctx.beginPath();ctx.moveTo(x+4,y+sz/2);ctx.lineTo(x+sz-4,y+sz/2);ctx.stroke();
+}
+function drawChair(ctx,x,y,sz){
+  const p=3,w=sz-p*2;
+  // Seat
+  ctx.fillStyle="#8b6b4a";
+  ctx.beginPath();ctx.arc(x+sz/2,y+sz/2,w/2.5,0,Math.PI*2);ctx.fill();
+  // Back
+  ctx.strokeStyle="#6b5a3e";ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.arc(x+sz/2,y+sz/2,w/2.2,Math.PI*0.7,Math.PI*2.3);ctx.stroke();
+}
+
+function renderMap(){
+  const canvas=document.getElementById("map-canvas");
+  const w=cols*cellPx,h=rows*cellPx;canvas.width=w;canvas.height=h;
+  canvas.style.cursor=phase==="design"?"crosshair":"default";
+  const ctx=canvas.getContext("2d");
+  const posMap={};
+  if(results)results.positions.forEach(p=>{posMap[`${p.row},${p.col}`]=p;});
+  const heat=results?.heatmap;const isR=phase==="results";
+  ctx.fillStyle="#0d1117";ctx.fillRect(0,0,w,h);
+  ctx.strokeStyle="rgba(0,224,208,0.04)";ctx.lineWidth=0.5;
+  for(let r=0;r<=rows;r++){ctx.beginPath();ctx.moveTo(0,r*cellPx);ctx.lineTo(w,r*cellPx);ctx.stroke();}
+  for(let c=0;c<=cols;c++){ctx.beginPath();ctx.moveTo(c*cellPx,0);ctx.lineTo(c*cellPx,h);ctx.stroke();}
+
+  for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){
+    const cell=grid[r][c];const key=`${r},${c}`;const vent=posMap[key];let fill;
+    if(isR&&heat&&cell>0&&overlay!=="none"&&!vent){
+      const v=Math.min(1,heat[r][c]);
+      if(overlay==="heat"){const[cr,cg,cb]=heatRGB(v);fill=`rgb(${Math.round(cr)},${Math.round(cg)},${Math.round(cb)})`;}
+      else{fill=`rgba(0,224,208,${(0.12+v*0.68).toFixed(2)})`;}
+    }else if(cell===0)fill="#161b24";
+    else if(cell===2)fill="#6b5a3e";
+    else if(cell===3||cell===4)fill=isR?(overlay!=="none"&&heat?`rgba(92,64,51,${0.4+Math.min(1,heat[r][c]||0)*0.4})`:CELL_COLORS[cell]):CELL_COLORS[cell];
+    else fill=isR?"#1a2233":"#1e2a3a";
+
+    ctx.fillStyle=fill;ctx.fillRect(c*cellPx+.5,r*cellPx+.5,cellPx-1,cellPx-1);
+
+    // Furniture rendering
+    if(cell===3)drawTable(ctx,c*cellPx,r*cellPx,cellPx);
+    else if(cell===4)drawChair(ctx,c*cellPx,r*cellPx,cellPx);
+    else if(cell===2){ctx.strokeStyle="#a08050";ctx.lineWidth=2;ctx.setLineDash([3,2]);ctx.beginPath();ctx.moveTo(c*cellPx+3,r*cellPx+cellPx/2);ctx.lineTo((c+1)*cellPx-3,r*cellPx+cellPx/2);ctx.stroke();ctx.setLineDash([]);}
+
+    // Airflow arrows
+    if(isR&&overlay==="airflow"&&cell>0&&!vent&&heat&&heat[r][c]>.12){
+      let mD=Infinity,nr=0,nc=0;for(const p of results.positions){const d=Math.hypot(r-p.row,c-p.col);if(d<mD){mD=d;nr=p.row-r;nc=p.col-c;}}
+      ctx.fillStyle="rgba(0,224,208,0.3)";ctx.font=`${cellPx*.38}px sans-serif`;ctx.textAlign="center";ctx.textBaseline="middle";
+      ctx.fillText(Math.abs(nr)>Math.abs(nc)?(nr>0?"↓":"↑"):(nc>0?"→":"←"),c*cellPx+cellPx/2,r*cellPx+cellPx/2);
+    }
+
+    // Vent markers with tonnage-based color
+    if(vent){
+      const tColor=TON_COLORS[vent.tonnage]||"#00e0d0";
+      const grad=ctx.createRadialGradient(c*cellPx+cellPx/2,r*cellPx+cellPx/2,0,c*cellPx+cellPx/2,r*cellPx+cellPx/2,cellPx);
+      grad.addColorStop(0,tColor+"73");grad.addColorStop(1,tColor+"00");
+      ctx.fillStyle=grad;ctx.fillRect(c*cellPx-cellPx*.3,r*cellPx-cellPx*.3,cellPx*1.6,cellPx*1.6);
+      const sel=selectedVent&&selectedVent.row===r&&selectedVent.col===c;
+      ctx.fillStyle=tColor;ctx.beginPath();
+      const pd=2,rd=Math.min(5,cellPx*.15),x=c*cellPx+pd,y=r*cellPx+pd,bw=cellPx-pd*2,bh=cellPx-pd*2;
+      ctx.moveTo(x+rd,y);ctx.arcTo(x+bw,y,x+bw,y+bh,rd);ctx.arcTo(x+bw,y+bh,x,y+bh,rd);ctx.arcTo(x,y+bh,x,y,rd);ctx.arcTo(x,y,x+bw,y,rd);ctx.fill();
+      if(sel){ctx.strokeStyle="#fff";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x+rd,y);ctx.arcTo(x+bw,y,x+bw,y+bh,rd);ctx.arcTo(x+bw,y+bh,x,y+bh,rd);ctx.arcTo(x,y+bh,x,y,rd);ctx.arcTo(x,y,x+bw,y,rd);ctx.closePath();ctx.stroke();}
+      ctx.fillStyle="#0b0e14";ctx.font=`800 ${cellPx*.28}px 'Instrument Sans',sans-serif`;ctx.textAlign="center";ctx.textBaseline="middle";
+      ctx.fillText(vent.tonnage+"T",c*cellPx+cellPx/2,r*cellPx+cellPx/2+1);
+    }
+  }
+  updateMapHint();
+}
+
+// ══════ OPTIMIZATION ══════
+async function handleRun(){
+  if(phase==="results"){phase="design";results=null;selectedVent=null;updateAll();return;}
+  if(phase==="training")return;
+  phase="training";updatePhaseBadge();updateRunBtn();
+  document.getElementById("progress-card").style.display="block";
+  const radius=+document.getElementById("radius-slider").value;
+  const episodes=+document.getElementById("ep-slider").value;
+  const maxAc=+document.getElementById("maxac-slider").value;
+  let res;
+  try{
+    const resp=await fetch("/api/optimize",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({grid,radius,episodes,max_ac_limit:maxAc||null})});
+    if(!resp.ok)throw new Error("API err");
+    res=await resp.json();
+  }catch(e){
+    console.log("API unavailable, running in-browser...");
+    res=await runInBrowser(grid,radius,episodes,maxAc);
+  }
+  results=res;phase="results";
+  document.getElementById("progress-card").style.display="none";
+  updateAll();
+}
+
+async function runInBrowser(grid,radius,episodes,maxAcLimit){
+  const rows=grid.length,cols=grid[0].length,walkable=[],placeable=[];
+  for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){
+    if(grid[r][c]>0)walkable.push([r,c]);
+    if(grid[r][c]===1||grid[r][c]===2)placeable.push([r,c]);
+  }
+  if(placeable.length===0)return null;
+  const nValid=placeable.length;
+  const autoMax=Math.max(3,Math.floor(nValid/6));
+  const maxUnits=maxAcLimit>0?Math.min(maxAcLimit,autoMax):autoMax;
+  const qScores=new Float64Array(nValid);let epsilon=1;
+  let best={positions:[],units:maxUnits+1,coverage:0,heatmap:null};const history=[];
+
+  function computeCool(positions){
+    const cool=Array.from({length:rows},()=>new Float64Array(cols));
+    for(const[hr,hc]of positions){
+      for(let r=Math.max(0,hr-radius);r<Math.min(rows,hr+radius+1);r++){
+        for(let c=Math.max(0,hc-radius);c<Math.min(cols,hc+radius+1);c++){
+          if(grid[r][c]===0)continue;const d=Math.hypot(r-hr,c-hc);if(d>radius)continue;
+          let w=0,f=0;const st=Math.max(Math.abs(r-hr),Math.abs(c-hc));
+          if(st>0)for(let s=1;s<st;s++){const sr=Math.round(hr+(r-hr)*s/st),sc=Math.round(hc+(c-hc)*s/st);const v=grid[sr][sc];if(v===0)w++;else if(v===3||v===4)f++;}
+          cool[r][c]+=Math.exp(-.15*d)*Math.pow(.85,w)*Math.pow(.95,f);
+        }}}
+    return cool;
+  }
+  function getCov(cool){let wk=0,cv=0;for(let r=0;r<rows;r++)for(let c=0;c<cols;c++)if(grid[r][c]>0){wk++;if(cool[r][c]>=.3)cv++;}return wk?cv/wk:1;}
+
+  for(let ep=0;ep<episodes;ep++){
+    const placed=[],ps=new Set();let cov=0;
+    for(let step=0;step<maxUnits;step++){
+      let idx;
+      if(Math.random()<epsilon){const ca=[];for(let i=0;i<nValid;i++)if(!ps.has(i))ca.push(i);idx=ca[Math.floor(Math.random()*ca.length)];}
+      else{let bq=-Infinity;idx=0;for(let i=0;i<nValid;i++)if(!ps.has(i)&&qScores[i]>bq){bq=qScores[i];idx=i;}}
+      placed.push(placeable[idx]);ps.add(idx);
+      const cool=computeCool(placed);const prev=cov;cov=getCov(cool);
+      qScores[idx]+=.1*((cov-prev)*100-2-qScores[idx]);
+      if(cov>=.95){qScores[idx]+=.1*50;if(placed.length<best.units||(placed.length===best.units&&cov>best.coverage))best={positions:placed.map(p=>[...p]),units:placed.length,coverage:cov,heatmap:cool};break;}
+    }
+    if(cov<.95&&cov>best.coverage&&best.coverage<.95)best={positions:placed.map(p=>[...p]),units:placed.length,coverage:cov,heatmap:computeCool(placed)};
+    epsilon=Math.max(.05,epsilon*.993);
+    history.push({ep:ep+1,cov:Math.round(best.coverage*1000)/10});
+    if(ep%12===0){document.getElementById("prog-fill").style.width=((ep+1)/episodes*100)+"%";document.getElementById("prog-ep").textContent=`Ep ${ep+1}/${episodes}`;document.getElementById("prog-cov").textContent=(best.coverage*100).toFixed(1)+"%";await new Promise(r=>setTimeout(r,0));}
+  }
+  if(!best.heatmap&&best.positions.length>0)best.heatmap=computeCool(best.positions);
+  const hm=best.heatmap?Array.from({length:rows},(_,r)=>Array.from(best.heatmap[r])):null;
+
+  // Tonnage estimation (Voronoi zone)
+  const positions=best.positions;
+  const ventInfo=positions.map((pos,i)=>{
+    let zCells=0,zFurn=0;
+    for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){
+      if(grid[r][c]===0)continue;
+      let mD=Infinity,near=null;
+      for(const p of positions){const d=Math.hypot(r-p[0],c-p[1]);if(d<mD){mD=d;near=p;}}
+      if(near&&near[0]===pos[0]&&near[1]===pos[1]){zCells++;if(grid[r][c]===3||grid[r][c]===4)zFurn++;}
+    }
+    if(zCells===0)return{id:i+1,row:pos[0],col:pos[1],tonnage:.75};
+    const area=zCells*25,load=1+(0.15)*(zFurn/zCells),btu=area*25*load,tons=btu/12000;
+    let t=.75;for(const opt of TONNAGE_OPTIONS)if(opt>=tons){t=opt;break;}
+    if(tons>2)t=2;
+    return{id:i+1,row:pos[0],col:pos[1],tonnage:t};
+  });
+
+  let wkCt=0,avgCl=0,dz=0,fCt=0;
+  for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){if(grid[r][c]>0){wkCt++;if(hm){avgCl+=hm[r][c];if(hm[r][c]<.3)dz++;}}if(grid[r][c]===3||grid[r][c]===4)fCt++;}
+  avgCl=wkCt?avgCl/wkCt:0;
+
+  return{
+    positions:ventInfo.map(v=>({row:v.row,col:v.col,tonnage:v.tonnage})),
+    n_units:best.units,coverage:Math.round(best.coverage*1000)/10,heatmap:hm,
+    history:history.filter((_,i)=>i%(Math.max(1,Math.floor(history.length/80)))===0),
+    dead_zones:dz,avg_cooling:Math.round(avgCl*1000)/10,walkable_cells:wkCt,furniture_cells:fCt,
+    efficiency:Math.round(wkCt/Math.max(1,best.units)*10)/10,
+    total_tonnage:ventInfo.reduce((s,v)=>s+v.tonnage,0),
+    vent_stats:ventInfo,max_ac_limit:maxUnits,
+  };
+}
+
+// ══════ RESULTS PANEL ══════
+function updateRightPanel(){
+  const empty=document.getElementById("empty-state"),ctr=document.getElementById("results-container");
+  if(!results){empty.style.display="block";ctr.style.display="none";return;}
+  empty.style.display="none";ctr.style.display="flex";ctr.style.flexDirection="column";ctr.style.gap="14px";
+  const covPct=typeof results.coverage==="number"&&results.coverage<=1?(results.coverage*100).toFixed(1):results.coverage;
+  const met=parseFloat(covPct)>=95;
+  const totalTons=results.total_tonnage||results.positions.reduce((s,v)=>s+(v.tonnage||1),0);
+
+  let chart="";
+  if(results.history?.length>1){
+    const cw=255,ch=80,pad=24;
+    const pts=results.history.map((d,i)=>{const x=pad+(i/(results.history.length-1))*(cw-2*pad),y=ch-pad-(d.cov/100)*(ch-2*pad);return`${x},${y}`;}).join(" ");
+    chart=`<svg width="${cw}" height="${ch+8}" style="display:block;margin:8px auto 0"><line x1="${pad}" y1="${ch-pad}" x2="${cw-pad}" y2="${ch-pad}" stroke="rgba(0,224,208,0.12)" stroke-width="0.5"/><line x1="${pad}" y1="${pad}" x2="${pad}" y2="${ch-pad}" stroke="rgba(0,224,208,0.12)" stroke-width="0.5"/><polyline points="${pts}" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round"/><text x="${cw/2}" y="${ch+5}" text-anchor="middle" fill="var(--text-muted)" font-size="7" font-family="DM Sans">Episodes</text></svg>`;
+  }
+
+  ctr.innerHTML=`
+    <div class="card card-glow fade-in">
+      <div class="lbl">Prediction Summary</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:8px">
+        <div><div class="stat-num">${results.n_units}</div><div class="stat-sub">AC Units</div></div>
+        <div><div class="stat-num">${covPct}%</div><div class="stat-sub">Coverage</div></div>
+        <div><div class="stat-num" style="color:#f0a030">${totalTons.toFixed(1)}</div><div class="stat-sub">Total Tons</div></div>
+      </div>
+      <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">
+        <span class="badge ${met?'badge-green':'badge-amber'}">${met?'✓ TARGET MET':'⚠ BELOW TARGET'}</span>
+        <span class="badge badge-muted">max ${results.max_ac_limit||'auto'} ACs</span>
+      </div>
+    </div>
+
+    <div class="card fade-in" style="animation-delay:.05s">
+      <div class="lbl">AC Placement & Tonnage</div>
+      <div style="display:flex;flex-direction:column;gap:2px;margin-top:4px">
+        ${results.positions.map((p,i)=>{
+          const tCol=TON_COLORS[p.tonnage]||"#00e0d0";
+          const isSel=selectedVent&&selectedVent.row===p.row&&selectedVent.col===p.col;
+          return`<div class="vent-row ${isSel?'active':''}" onclick="selectVent(${p.row},${p.col})">
+            <div class="vent-dot" style="background:${tCol}"></div>
+            <div style="flex:1">
+              <span style="font-weight:600;color:var(--text)">AC ${i+1}</span>
+              <span style="color:var(--text-dim);margin-left:6px">(${p.row},${p.col})</span>
+            </div>
+            <span style="font-family:var(--font-display);font-size:12px;font-weight:700;color:${tCol};padding:2px 8px;border-radius:4px;background:${tCol}22">${p.tonnage}T</span>
+          </div>`;
+        }).join("")}
+      </div>
+    </div>
+
+    <div class="card fade-in" style="animation-delay:.1s">
+      <div class="lbl">Training Convergence</div>
+      ${chart}
+    </div>
+
+    <div class="card fade-in" style="animation-delay:.15s">
+      <div class="lbl">Thermal Analysis</div>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-top:4px">
+        <div class="info-row"><span class="k">Avg Cooling</span><span class="v">${results.avg_cooling||'—'}%</span></div>
+        <div class="info-row"><span class="k">Dead Zones</span><span class="v">${results.dead_zones||0} cells</span></div>
+        <div class="info-row"><span class="k">Furniture Cells</span><span class="v">${results.furniture_cells||0}</span></div>
+        <div class="info-row"><span class="k">Efficiency</span><span class="v">${results.efficiency||'—'} cells/AC</span></div>
+        <div class="info-row"><span class="k">Total Tonnage</span><span class="v" style="color:#f0a030;font-weight:700">${totalTons.toFixed(2)} T</span></div>
+      </div>
+    </div>
+
+    <div class="card fade-in" style="animation-delay:.2s">
+      <div class="lbl">Export</div>
+      <button class="chip on" style="width:100%;justify-content:center" onclick="exportJSON()">↓ Download JSON</button>
+    </div>
+
+    <div class="card fade-in" style="animation-delay:.25s">
+      <div class="lbl">How It Works</div>
+      <p style="font-size:11px;color:var(--text-muted);line-height:1.6;margin-top:4px">
+        A DQN agent places ACs on walkable cells (not on furniture). Cooling follows exponential decay with wall and furniture attenuation via raycasting.
+        Tonnage is estimated per-vent using Voronoi zone area and furniture density — more furniture → higher thermal load → bigger AC.
+        The max-AC slider caps the agent's placements; set to 0 for automatic.
+      </p>
+    </div>`;
+}
+function selectVent(r,c){
+  if(selectedVent&&selectedVent.row===r&&selectedVent.col===c)selectedVent=null;
+  else selectedVent=results.positions.find(p=>p.row===r&&p.col===c)||null;
+  renderMap();updateRightPanel();
+}
+function exportJSON(){
+  if(!results)return;
+  const data={hvac_units:results.n_units,coverage:results.coverage+"%",
+    total_tonnage:results.total_tonnage,
+    positions:results.positions.map((p,i)=>({ac:i+1,row:p.row,col:p.col,tonnage:p.tonnage})),
+    grid_size:{rows,cols},cooling_radius:+document.getElementById("radius-slider").value,
+    max_ac_limit:+document.getElementById("maxac-slider").value||"auto"};
+  const b=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
+  const u=URL.createObjectURL(b);const a=document.createElement("a");a.href=u;a.download="hvac_result.json";a.click();URL.revokeObjectURL(u);
+}
+document.addEventListener("DOMContentLoaded",init);
+</script>
+</body>
+</html>
